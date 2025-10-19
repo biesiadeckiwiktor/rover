@@ -12,7 +12,7 @@ The primary goal of this project is to apply and integrate concepts learned thro
 - USB WebcaM
 - JGA-25-370 motor with encoder x6
 - LiFePO4 12.8V 6Ah battery
-- 5V and 6V buck converters
+- 3.3V, 5V and 6V buck converters
 - Dual-Band USB WiFi Adapter
 - Pimoroni ICM20948
 - Pimoroni VL53L5CX
