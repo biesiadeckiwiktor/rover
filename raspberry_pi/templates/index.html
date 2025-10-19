@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rover Control</title>
+    <style>
+        .vertical-slider {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 20px;
+            height: 150px;
+        }
+        
+        #tof-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 1px;
+        }
+        
+        .tof-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mission Control</h1>
+    
+    <table>
+        <tr>
+            <td>
+                <img src="/video_feed" width="640" height="480" alt="Camera Feed">
+                <br><small>Live Camera Feed</small>
+            </td>
+            <td style="vertical-align: top; padding-left: 20px;">
+                <h3>Motion Control:</h3>
+                <label>Forward/Backward:</label><br>
+                <input type="range" class="vertical-slider" id="motor" min="-255" max="255" value="0" onmouseup="this.value=0; motorValue.textContent='0'; send('/api/motor', {speed: 0})">
+                <span id="motorValue">0</span><br><br>
+                
+                <label>Left/Right:</label><br>
+                <input type="range" id="steering" min="0" max="180" value="90">
+                <span id="steeringValue">90°</span><br><br>
+
+                
+                <button onclick="setSteering(45)">45°</button>
+                <button onclick="setSteering(60)">60°</button>
+                <button onclick="setSteering(75)">75°</button>
+                <button onclick="setSteering(90)">90°</button>
+                <button onclick="setSteering(105)">105°</button>
+                <button onclick="setSteering(120)">120°</button>
+                <button onclick="setSteering(135)">135°</button><br><br> 
+                
+                <button id="turnInPlaceBtn" onclick="toggleTurnInPlace()">Turn In Place</button>
+                <button onclick="stop()">Stop</button>
+
+                <button onclick="centerSteering()">Reset Steering</button>
+                <button onclick="centerCamera()">Reset Camera</button><br><br>
+                
+                <h3>Camera Control:</h3>
+                <label>Pan:</label><br>
+                <input type="range" id="pan" min="0" max="180" value="90">
+                <span id="panValue">90°</span><br><br>
+                
+                <label>Tilt:</label><br>
+                <input type="range" id="tilt" min="0" max="180" value="90">
+                <span id="tiltValue">90°</span><br><br>
+                
+                <h3>Test Pattern:</h3>
+                <button onclick="runTestPattern()">Run Pattern</button>
+                <button onclick="stopPattern()">Stop Pattern</button>
+
+            </td>
+        </tr>
+    </table>
+
+    <h3>ToF Depth Sensor (0-100cm)</h3>
+    <div id="tof-grid"></div>
+
+    <script>
+        let lastSteeringAngle = 90;
+        let lastPanAngle = 90;
+        let lastTiltAngle = 90;
+        let turnInPlaceMode = false;
+
+        
+        function send(cmd, data) {
+            fetch(cmd, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});
+        }
+        
+        function sendThrottled(cmd, data, lastValue, threshold = 5) {
+            // Only send if value changed significantly
+            const currentValue = Object.values(data)[0];
+            if (Math.abs(currentValue - lastValue) >= threshold) {
+                send(cmd, data);
+                return currentValue;
+            }
+            return lastValue;
+        }
+        
+        document.getElementById('motor').addEventListener('input', (e) => {
+            const speed = parseInt(e.target.value);
+            document.getElementById('motorValue').textContent = speed;
+
+            if (turnInPlaceMode) {
+                // In turn-in-place mode, use turn-in-place motor control
+                const direction = speed > 0 ? 'forward' : 'backward';
+                const absSpeed = Math.abs(speed);
+                send('/api/turn_in_place', {direction: direction, speed: absSpeed});
+            } else {
+                // Normal driving mode
+                send('/api/motor', {speed: speed});
+            }
+        });
+        
+        document.getElementById('steering').addEventListener('input', (e) => {
+            const angle = parseInt(e.target.value);
+            document.getElementById('steeringValue').textContent = angle + '°';
+            lastSteeringAngle = sendThrottled('/api/steering', {angle: angle}, lastSteeringAngle, 5);
+        });
+        
+        document.getElementById('pan').addEventListener('input', (e) => {
+            const angle = parseInt(e.target.value);
+            document.getElementById('panValue').textContent = angle + '°';
+            lastPanAngle = sendThrottled('/api/camera/pan', {angle: angle}, lastPanAngle, 5);
+        });
+        
+        document.getElementById('tilt').addEventListener('input', (e) => {
+            const angle = parseInt(e.target.value);
+            document.getElementById('tiltValue').textContent = angle + '°';
+            lastTiltAngle = sendThrottled('/api/camera/tilt', {angle: angle}, lastTiltAngle, 5);
+        });
+        
+        function stop() {
+            send('/api/stop', {});
+            document.getElementById('motor').value = 0;
+            document.getElementById('motorValue').textContent = '0';
+        }
+        
+
+        
+        function centerSteering() {
+            send('/api/center', {});
+            document.getElementById('steering').value = 90;
+            document.getElementById('steeringValue').textContent = '90°';
+        }
+        
+        function setSteering(angle) {
+            document.getElementById('steering').value = angle;
+            document.getElementById('steeringValue').textContent = angle + '°';
+            send('/api/steering', {angle: angle});
+        }
+
+        function centerCamera() {
+            send('/api/center', {});
+            document.getElementById('pan').value = 90;
+            document.getElementById('panValue').textContent = '90°';
+            document.getElementById('tilt').value = 90;
+            document.getElementById('tiltValue').textContent = '90°';
+        }
+
+
+
+        function toggleTurnInPlace() {
+            const button = document.getElementById('turnInPlaceBtn');
+
+            if (turnInPlaceMode) {
+                // Turn off turn-in-place mode
+                turnInPlaceMode = false;
+                button.textContent = 'Turn In Place';
+                button.style.backgroundColor = '';
+                // Reset to center steering
+                centerSteering();
+            } else {
+                // Turn on turn-in-place mode
+                turnInPlaceMode = true;
+                button.textContent = 'Exit Turn In Place';
+                button.style.backgroundColor = '#ff6b6b';
+                // Set wheels to 45-degree angles
+                send('/api/set_turn_in_place', {});
+            }
+        }
+
+        function runTestPattern() {
+            send('/api/test_pattern', {});
+        }
+
+        function stopPattern() {
+            send('/api/stop_pattern', {});
+        }
+
+        // ToF Heatmap
+        function initToFGrid() {
+            const grid = document.getElementById('tof-grid');
+            for (let i = 0; i < 64; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'tof-cell';
+                cell.id = `tof-${i}`;
+                cell.textContent = '----';
+                grid.appendChild(cell);
+            }
+        }
+
+        function getColor(dist) {
+            if (dist <= 0) return 'rgb(50,50,50)';
+            if (dist > 1000) return 'rgb(0,0,100)';  // Dark blue for >100cm
+            
+            const t = dist / 1000;  // 0-100cm range
+            if (t < 0.33) {
+                const x = t / 0.33;
+                return `rgb(255,${Math.round(x*255)},0)`;  // Red to Yellow
+            } else if (t < 0.66) {
+                const x = (t - 0.33) / 0.33;
+                return `rgb(${Math.round(255*(1-x))},255,${Math.round(x*255)})`;  // Yellow to Cyan
+            } else {
+                const x = (t - 0.66) / 0.34;
+                return `rgb(0,${Math.round(255*(1-x))},255)`;  // Cyan to Blue
+            }
+        }
+
+        function updateToF() {
+            fetch('/api/tof_data')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) return;
+                    for (let row = 0; row < 8; row++) {
+                        for (let col = 0; col < 8; col++) {
+                            const cell = document.getElementById(`tof-${row*8+col}`);
+                            const dist = data.distances[row][col];
+                            cell.style.backgroundColor = getColor(dist);
+                            if (dist > 0) {
+                                cell.textContent = (dist / 10).toFixed(0);  // Show in cm
+                            } else {
+                                cell.textContent = '--';
+                            }
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        initToFGrid();
+        setInterval(updateToF, 100);
+    </script>
+</body>
+</html> 
