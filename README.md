@@ -23,3 +23,7 @@ The primary goal of this project is to apply and integrate concepts learned thro
  2nd camera on mast on pan-tilt mount
  
 ![IMG_3513](https://github.com/user-attachments/assets/c23afec9-4fed-4325-8c72-eadb1b7ab248)
+Early build
+
+![IMG_3640](https://github.com/user-attachments/assets/bec00cb2-f3f5-4e29-9ae4-d3ef786a57f1)
+Rocker-bogie developement
