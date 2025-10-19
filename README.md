@@ -1,2 +1,23 @@
-# rover
-Mars rover project
+# Mars rover project
+The primary goal of this project is to apply and integrate concepts learned throughout my course while expanding my knowledge in computer science, robotics and AI. This project serves as both a practical application of theoretical knowledge and a platform for exploring advanced topics beyond the standard curriculum. I chose to build a mars rover as a base, as would allow me to merge designing body, choosing and integrating correct hardware and improving my programming skills with Raspberry Pi and Arduino. This design also allows to implement gradual improvements over time expanding on its funcionality.
+
+# Body
+6 wheeled chassis with rocker-bogie suspension
+
+# Hardware
+- Raspberry Pi 5 with 256GB NVMe
+- Arduino UNO R3
+- Adafruit Motorshield v3 x2
+- Adafruit Servoshield
+- USB WebcaM
+- JGA-25-370 motor with encoder x6
+- LiFePO4 12.8V 6Ah battery
+- 5V and 6V buck converters
+- Dual-Band USB WiFi Adapter
+- Pimoroni ICM20948
+- Pimoroni VL53L5CX
+- MPPT
+- Solar Panel
+
+ Planned:
+ 2nd camera on mast on pan-tilt mount
