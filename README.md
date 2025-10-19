@@ -9,8 +9,9 @@ The primary goal of this project is to apply and integrate concepts learned thro
 - Arduino UNO R3
 - Adafruit Motorshield v3 x2
 - Adafruit Servoshield
-- USB WebcaM
+- USB Webcam
 - JGA-25-370 motor with encoder x6
+- MG996R servo x4
 - LiFePO4 12.8V 6Ah battery
 - 3.3V, 5V and 6V buck converters
 - Dual-Band USB WiFi Adapter
@@ -27,3 +28,5 @@ Early build
 
 ![IMG_3640](https://github.com/user-attachments/assets/bec00cb2-f3f5-4e29-9ae4-d3ef786a57f1)
 Rocker-bogie developement
+
+
