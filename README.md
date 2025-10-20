@@ -22,6 +22,14 @@ The primary goal of this project is to apply and integrate concepts learned thro
 
  Planned:
  2nd camera on mast on pan-tilt mount
+
+
+![IMG_3794](https://github.com/user-attachments/assets/5f54e26b-6167-4092-8d1f-8bcc67fd521f)
+![IMG_3795](https://github.com/user-attachments/assets/79dd0f7a-6f28-45ed-a3b6-8cc2454e9db1)
+![IMG_3793](https://github.com/user-attachments/assets/32e59f0c-14f0-4167-9632-6d8d65fc7c9c)
+![IMG_3792](https://github.com/user-attachments/assets/748098b7-edc3-455f-9669-526df54658a7)
+![IMG_3796](https://github.com/user-attachments/assets/0928054d-a8ba-4dfa-bcc3-1f20a146f448)
+
  
 ![IMG_3513](https://github.com/user-attachments/assets/c23afec9-4fed-4325-8c72-eadb1b7ab248)
 Early build
