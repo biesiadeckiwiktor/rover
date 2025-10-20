@@ -7,7 +7,6 @@ import cv2
 from driving import DrivingSystem
 from odometry import Odometry
 from self_drive import SelfDrive
-from test_pattern import run_test_pattern, stop_pattern
 
 app = Flask(__name__)
 
@@ -88,10 +87,16 @@ def send(cmd):
  
 
 try:
-    self_drive = SelfDrive(encoder_reader, driving_system, send, imu_reader)
+    self_drive = SelfDrive(
+        encoder_reader=encoder_reader,
+        driving_system=driving_system,
+        send_function=send
+    )
     print("Self-drive system initialized")
 except Exception as e:
+    import traceback
     print(f"Self-drive system error: {e}")
+    traceback.print_exc()
     self_drive = None
 
 def continuous_sensor_display():
@@ -110,6 +115,7 @@ def continuous_sensor_display():
             if odometry and encoder_reader:
                 distance = odometry.get_distance_travelled()
                 logger.info(f"Distance travelled: {distance:.2f} m")
+                time.sleep(1)
             
             # IMU data
             if imu_reader:
@@ -118,8 +124,8 @@ def continuous_sensor_display():
                 logger.info(f"Gyro (°/s): X={imu['gyro']['x']:>7.1f}  Y={imu['gyro']['y']:>7.1f}  Z={imu['gyro']['z']:>7.1f}")
                 logger.info(f"Mag (µT):   X={imu['mag']['x']:>7.1f}  Y={imu['mag']['y']:>7.1f}  Z={imu['mag']['z']:>7.1f}")
                 logger.info(f"Temp: {imu['temp']:.1f}°C")
+                time.sleep(1)
             
-            time.sleep(1)
         except Exception as e:
             logger.error(f"Sensor display error: {e}")
             time.sleep(1)
@@ -254,19 +260,6 @@ def turn_in_place():
 
     return jsonify({'success': True})
 
-@app.route('/api/test_pattern', methods=['POST'])
-def test_pattern():
-    if not self_drive:
-        return jsonify({'success': False})
-    
-    threading.Thread(target=run_test_pattern, args=(self_drive,), daemon=True).start()
-    return jsonify({'success': True})
-
-@app.route('/api/stop_pattern', methods=['POST'])
-def stop_test_pattern():
-    stop_pattern()
-    return jsonify({'success': True})
-
 @app.route('/api/tof_data')
 def tof_data():
     if not tof_reader:
@@ -299,6 +292,25 @@ if __name__ == '__main__':
         ]
     )
     
+    # Disable werkzeug request logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+    
+    # ============================================================
+    # PRE-PLANNED PATH - Add your movement commands here
+    # ============================================================
+    def planned_path():
+        time.sleep(5)  # Wait 5 seconds after startup
+        
+        if not self_drive:
+            print("ERROR: self_drive not initialized - check encoder_reader and driving_system")
+            return
+            
+        # Write your commands here:
+        self_drive.make_specific_turn(100, 1.0, "left", 0.25)
+        
+    # ============================================================
+    
     try:
         print(f"Rover ready - Encoder: {'ON' if encoder_reader else 'OFF'}, IMU: {'ON' if imu_reader else 'OFF'}")
         
@@ -306,6 +318,10 @@ if __name__ == '__main__':
         if encoder_reader or imu_reader:
             sensor_thread = threading.Thread(target=continuous_sensor_display, daemon=True)
             sensor_thread.start()
+        
+        # Start pre-planned path thread
+        path_thread = threading.Thread(target=planned_path, daemon=True)
+        path_thread.start()
             
         app.run(host='0.0.0.0', port=5000)
     finally:

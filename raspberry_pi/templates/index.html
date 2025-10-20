@@ -6,6 +6,7 @@
         .vertical-slider {
             writing-mode: bt-lr;
             -webkit-appearance: slider-vertical;
+            appearance: slider-vertical;
             width: 20px;
             height: 150px;
         }
@@ -68,10 +69,6 @@
                 <label>Tilt:</label><br>
                 <input type="range" id="tilt" min="0" max="180" value="90">
                 <span id="tiltValue">90°</span><br><br>
-                
-                <h3>Test Pattern:</h3>
-                <button onclick="runTestPattern()">Run Pattern</button>
-                <button onclick="stopPattern()">Stop Pattern</button>
 
             </td>
         </tr>
@@ -182,14 +179,6 @@
                 // Set wheels to 45-degree angles
                 send('/api/set_turn_in_place', {});
             }
-        }
-
-        function runTestPattern() {
-            send('/api/test_pattern', {});
-        }
-
-        function stopPattern() {
-            send('/api/stop_pattern', {});
         }
 
         // ToF Heatmap
