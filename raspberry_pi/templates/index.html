@@ -11,20 +11,6 @@
             height: 150px;
         }
         
-        #tof-grid {
-            display: grid;
-            grid-template-columns: repeat(8, 50px);
-            grid-template-rows: repeat(8, 50px);
-            gap: 1px;
-        }
-        
-        .tof-cell {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            color: white;
-        }
     </style>
 </head>
 <body>
@@ -74,8 +60,6 @@
         </tr>
     </table>
 
-    <h3>ToF Depth Sensor (0-100cm)</h3>
-    <div id="tof-grid"></div>
 
     <script>
         let lastSteeringAngle = 90;
@@ -181,58 +165,6 @@
             }
         }
 
-        // ToF Heatmap
-        function initToFGrid() {
-            const grid = document.getElementById('tof-grid');
-            for (let i = 0; i < 64; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'tof-cell';
-                cell.id = `tof-${i}`;
-                cell.textContent = '----';
-                grid.appendChild(cell);
-            }
-        }
-
-        function getColor(dist) {
-            if (dist <= 0) return 'rgb(50,50,50)';
-            if (dist > 1000) return 'rgb(0,0,100)';  // Dark blue for >100cm
-            
-            const t = dist / 1000;  // 0-100cm range
-            if (t < 0.33) {
-                const x = t / 0.33;
-                return `rgb(255,${Math.round(x*255)},0)`;  // Red to Yellow
-            } else if (t < 0.66) {
-                const x = (t - 0.33) / 0.33;
-                return `rgb(${Math.round(255*(1-x))},255,${Math.round(x*255)})`;  // Yellow to Cyan
-            } else {
-                const x = (t - 0.66) / 0.34;
-                return `rgb(0,${Math.round(255*(1-x))},255)`;  // Cyan to Blue
-            }
-        }
-
-        function updateToF() {
-            fetch('/api/tof_data')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.error) return;
-                    for (let row = 0; row < 8; row++) {
-                        for (let col = 0; col < 8; col++) {
-                            const cell = document.getElementById(`tof-${row*8+col}`);
-                            const dist = data.distances[row][col];
-                            cell.style.backgroundColor = getColor(dist);
-                            if (dist > 0) {
-                                cell.textContent = (dist / 10).toFixed(0);  // Show in cm
-                            } else {
-                                cell.textContent = '--';
-                            }
-                        }
-                    }
-                })
-                .catch(() => {});
-        }
-
-        initToFGrid();
-        setInterval(updateToF, 100);
     </script>
 </body>
 </html> 

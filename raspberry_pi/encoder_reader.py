@@ -6,14 +6,13 @@ from gpiozero import DigitalInputDevice
 
 class EncoderReader:
     def __init__(self):
-        # GPIO pins for all 6 encoders (A/B swapped for inverted encoders)
         self.pins = {
-            'FL_A': DigitalInputDevice(6, pull_up=True),   # Front Left A (swapped)
-            'FL_B': DigitalInputDevice(5, pull_up=True),   # Front Left B (swapped)
+            'FL_A': DigitalInputDevice(6, pull_up=True),   # Front Left
+            'FL_B': DigitalInputDevice(5, pull_up=True),   # Front Left B
             'FR_A': DigitalInputDevice(12, pull_up=True),  # Front Right A
             'FR_B': DigitalInputDevice(13, pull_up=True),  # Front Right B
-            'ML_A': DigitalInputDevice(27, pull_up=True),  # Middle Left A (swapped)
-            'ML_B': DigitalInputDevice(17, pull_up=True),  # Middle Left B (swapped)
+            'ML_A': DigitalInputDevice(27, pull_up=True),  # Middle Left A
+            'ML_B': DigitalInputDevice(17, pull_up=True),  # Middle Left B
             'MR_A': DigitalInputDevice(23, pull_up=True),  # Middle Right A
             'MR_B': DigitalInputDevice(24, pull_up=True),  # Middle Right B
             'RL_A': DigitalInputDevice(16, pull_up=True),  # Rear Left A
@@ -22,9 +21,9 @@ class EncoderReader:
             'RR_B': DigitalInputDevice(21, pull_up=True),  # Rear Right B
         }
         
-        # Encoder counts for all 6 wheels
         self.counts = {'FL': 0, 'FR': 0, 'ML': 0, 'MR': 0, 'RL': 0, 'RR': 0}
         self.last_states = {'FL': [0, 0], 'FR': [0, 0], 'ML': [0, 0], 'MR': [0, 0], 'RL': [0, 0], 'RR': [0, 0]}
+        self.lock = threading.Lock()  # Thread safety for counts
         
         # Initialize states for all encoders
         self.last_states['FL'][0] = self.pins['FL_A'].value
@@ -55,7 +54,7 @@ class EncoderReader:
             self._update_encoder('MR', 'MR_A', 'MR_B')
             self._update_encoder('RL', 'RL_A', 'RL_B')
             self._update_encoder('RR', 'RR_A', 'RR_B')
-            time.sleep(0.001)
+            # No sleep - poll as fast as possible for high-speed accuracy
     
     def _update_encoder(self, name, pin_a_name, pin_b_name):
         """Update encoder count based on pin states - standard quadrature decoding"""
@@ -64,18 +63,18 @@ class EncoderReader:
         last_a = self.last_states[name][0]
         last_b = self.last_states[name][1]
         
-        # Proper quadrature: count on A transitions, use B for direction
+        # Proper quadrature: A transitions, B for direction
         if current_a != last_a:
             if current_a == 1:  # Rising edge of A
                 if current_b == 0:
-                    self.counts[name] += 1  # Forward
+                    self.counts[name] += 1  # Forward - NO LOCK, accept rare race
                 else:
-                    self.counts[name] -= 1  # Reverse
+                    self.counts[name] += 1  # Reverse
             else:  # Falling edge of A  
                 if current_b == 1:
                     self.counts[name] += 1  # Forward
                 else:
-                    self.counts[name] -= 1  # Reverse
+                    self.counts[name] += 1  # Reverse
         
         # Update last states
         self.last_states[name][0] = current_a
@@ -83,12 +82,11 @@ class EncoderReader:
     
     def get_counts(self):
         """Get current encoder counts"""
-        # Ensure all keys exist with default values
         default_counts = {'FL': 0, 'FR': 0, 'ML': 0, 'MR': 0, 'RL': 0, 'RR': 0}
         for key in default_counts:
             if key not in self.counts:
                 self.counts[key] = 0
-        return self.counts.copy()
+        return self.counts.copy()  # Copy is atomic enough for our needs
     
     def reset_counts(self):
         """Reset encoder counts to zero"""

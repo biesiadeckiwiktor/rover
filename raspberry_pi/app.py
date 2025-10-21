@@ -90,7 +90,9 @@ try:
     self_drive = SelfDrive(
         encoder_reader=encoder_reader,
         driving_system=driving_system,
-        send_function=send
+        send_function=send,
+        imu_reader=imu_reader,  # Enable IMU for accurate arc measurement
+        use_pid=True
     )
     print("Self-drive system initialized")
 except Exception as e:
@@ -208,12 +210,10 @@ def center():
 
     current_steering_angle = 90
 
-    # Send center command for servos
     servo_angles = driving_system.center_steering()
     servo_string = driving_system.get_steering_command_string(servo_angles)
     send(f"STEER:{servo_string}")
 
-    # Maintain current motor speed
     if current_motor_speed != 0:
         speeds = driving_system.calculate_differential_speeds(abs(current_motor_speed), 90)
 
@@ -232,7 +232,6 @@ def set_turn_in_place():
     if not driving_system:
         return jsonify({'success': False, 'error': 'Driving system not available'})
 
-    # Set wheels to turn-in-place angles
     servo_angles = driving_system.set_turn_in_place_angles()
     servo_string = driving_system.get_steering_command_string(servo_angles)
     send(f"STEER:{servo_string}")
@@ -254,17 +253,11 @@ def turn_in_place():
         speeds = [-speed, speed, -speed, speed, -speed, speed]  
         #            FL,   FR,      ML,    MR,     RL,    RR
 
-    # Send speeds directly without differential steering calculations
     speed_string = driving_system.get_motor_command_string(speeds)
     send(f"MOTORS:{speed_string}")
 
     return jsonify({'success': True})
 
-@app.route('/api/tof_data')
-def tof_data():
-    if not tof_reader:
-        return jsonify({'error': 'ToF not available'}), 503
-    return jsonify({'distances': tof_reader.get_data()})
 
 
 def cleanup():
@@ -292,34 +285,32 @@ if __name__ == '__main__':
         ]
     )
     
-    # Disable werkzeug request logging
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
     
     # ============================================================
-    # PRE-PLANNED PATH - Add your movement commands here
-    # ============================================================
+   
     def planned_path():
-        time.sleep(5)  # Wait 5 seconds after startup
+        time.sleep(1)  
         
         if not self_drive:
             print("ERROR: self_drive not initialized - check encoder_reader and driving_system")
             return
             
-        # Write your commands here:
-        self_drive.make_specific_turn(100, 1.0, "left", 0.25)
-        
+        #self_drive.make_specific_turn(100, 1.0, "left", 0.25)
+        self_drive.straight(150, 1.0, "forward")
+self_drive.make_specific_turn(150, 0.50, "left", 0.5)
+        #self_drive.straight(200, 1.0, "forward")
+        self_drive.make_specific_turn(100, 1.0, "left", 0.25
     # ============================================================
     
     try:
         print(f"Rover ready - Encoder: {'ON' if encoder_reader else 'OFF'}, IMU: {'ON' if imu_reader else 'OFF'}")
         
-        # Start sensor display thread
         if encoder_reader or imu_reader:
             sensor_thread = threading.Thread(target=continuous_sensor_display, daemon=True)
             sensor_thread.start()
         
-        # Start pre-planned path thread
         path_thread = threading.Thread(target=planned_path, daemon=True)
         path_thread.start()
             
